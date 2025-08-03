@@ -3,7 +3,10 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
+# totally random value (for plotting)
 SIZE = 10
+
+# plot area size
 RESOLUTION = 100
 
 
@@ -108,7 +111,7 @@ def perlin(x, y):
 
     return noise_value
 
-
+# add octaves
 def octave_perlin(x, y, octaves, persistence):
     total = 0.0
     frequency = 1.0
@@ -138,6 +141,9 @@ def plot_noise():
             y = j / RESOLUTION * SIZE
             noise_value = octave_perlin(x, y, 6, 0.5)
             noise[j][i] = noise_value
+
+    # normalize noise values for plot
+    noise = (noise - np.min(noise)) / (np.max(noise) - np.min(noise))
 
     plt.figure(figsize=(10, 8))
     plt.imshow(noise, cmap="grey", aspect="auto")
