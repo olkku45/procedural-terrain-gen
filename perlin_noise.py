@@ -10,32 +10,34 @@ SIZE = 10
 RESOLUTION = 100
 
 
-def generate_unit_vectors():
-    vectors = {}
-    
-    for x in range(SIZE):
-        for y in range(SIZE):
-            angle = random.uniform(0, 2*math.pi)
-            vector = (math.cos(angle), math.sin(angle))
-            vectors[(x, y)] = vector
+class FastVectorLookup:
+    def __init__(self, table_size=65536):
+        """Pre-compute sin/cos lookup table"""
+        self.table_size = table_size
+        self.angle_scale = table_size / (2 * math.pi)
         
-    return vectors
+        # Pre-compute lookup tables
+        angles = np.linspace(0, 2*math.pi, table_size, endpoint=False)
+        self.cos_table = np.cos(angles)
+        self.sin_table = np.sin(angles)
+    
+    def get_unit_vector(self, x, y):
+        # Fast hash
+        h = (x * 73856093) ^ (y * 19349663)
+        h = ((h >> 16) ^ h) * 0x45d9f3b
+        h = ((h >> 16) ^ h) * 0x45d9f3b
+        h = (h >> 16) ^ h
+        
+        # Use hash as index into lookup table
+        index = h % self.table_size
+        return (self.cos_table[index], self.sin_table[index])
 
 
-UNIT_VECTORS = generate_unit_vectors()
+fast_lookup = FastVectorLookup()
 
 
 def get_unit_vector(x, y):
-    # if coordinates are outside initial range
-    # (kind of scuffed)
-    if (x, y) not in UNIT_VECTORS:
-        # hash function
-        random.seed(x * 73856093 + y * 19349663)
-        angle = random.uniform(0, 2*math.pi)
-        random.seed()
-        return (math.cos(angle), math.sin(angle))
-    
-    return UNIT_VECTORS[(x, y)]
+    return fast_lookup.get_unit_vector(x, y)
 
 # locate the four points of each grid cell
 def locate_corners(x, y):

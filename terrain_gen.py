@@ -1,14 +1,15 @@
 from perlin_noise import octave_perlin
 import pygame
 import numpy as np
+import cProfile
 
 WIDTH, HEIGHT = 1280, 720
-# if tile_size < 4, it may be
+# if tile_size < 10, it may be
 # difficult to exit out during
 # the loading screen :) at
 # least for me, it will differ
 # greatly based on your hardware
-TILE_SIZE = 4
+TILE_SIZE = 5
 SCALE = 0.01
 FPS = 30
 
@@ -30,7 +31,6 @@ pygame.display.set_caption("Terrain map generator")
 
 font = pygame.font.Font("freesansbold.ttf", 32)
 small_font = pygame.font.Font("freesansbold.ttf", 24)
-
 
 # initialize surfaces which will be drawn
 color_surfaces = {}
@@ -139,9 +139,9 @@ def generate_terrain_surface(width, height, tile_size, noise_grid, progress_call
                 terrain_type = "water"
             elif noise_val < 0.30:
                 terrain_type = "sand"
-            elif noise_val < 0.60:
+            elif noise_val < 0.65:
                 terrain_type = "grass"
-            elif noise_val < 0.8:
+            elif noise_val < 0.85:
                 terrain_type = "rock"
             else:
                 terrain_type = "snow"
@@ -207,9 +207,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    cProfile.run('main()')
 
 # TILE_SIZE = 10:
+# (optimizations in this file)
 # without optimizations: 20s
 # with optimizations, without progress bar: 3s
-# with optimizations, with progress bar: 5s
+# with optimizations, with progress bar: 5-7s
