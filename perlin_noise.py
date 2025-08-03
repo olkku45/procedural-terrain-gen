@@ -27,7 +27,9 @@ UNIT_VECTORS = generate_unit_vectors()
 
 def get_unit_vector(x, y):
     # if coordinates are outside initial range
+    # (kind of scuffed)
     if (x, y) not in UNIT_VECTORS:
+        # hash function
         random.seed(x * 73856093 + y * 19349663)
         angle = random.uniform(0, 2*math.pi)
         random.seed()
