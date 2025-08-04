@@ -1,4 +1,3 @@
-import random
 import math
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,20 +12,25 @@ RESOLUTION = 100
 class FastVectorLookup:
     def __init__(self, table_size=65536):
         self.table_size = table_size
-        self.angle_scale = table_size / (2 * math.pi)
-        
-        angles = np.linspace(0, 2*math.pi, table_size, endpoint=False)
-        self.cos_table = np.cos(angles)
-        self.sin_table = np.sin(angles)
+        self.vectors = self._generate_unit_vectors(table_size)
     
-    def get_unit_vector(self, x, y):
+    def _generate_unit_vectors(self, n):
+        # Generate 2D unit vectors
+        vectors = np.zeros((n, 2))
+        theta = 2 * np.pi * np.random.rand(n)
+        vectors[:, 0] = np.cos(theta)
+        vectors[:, 1] = np.sin(theta)
+        return vectors
+    
+    def get_unit_vectors(self, x, y):
+        # Vectorized hash function for 2D
         h = (x * 73856093) ^ (y * 19349663)
         h = ((h >> 16) ^ h) * 0x45d9f3b
         h = ((h >> 16) ^ h) * 0x45d9f3b
         h = (h >> 16) ^ h
         
-        index = h % self.table_size
-        return (self.cos_table[index], self.sin_table[index])
+        indices = h % self.table_size
+        return self.vectors[indices]
 
 
 fast_lookup = FastVectorLookup()
@@ -36,63 +40,48 @@ def get_unit_vector(x, y):
     return fast_lookup.get_unit_vector(x, y)
 
 
-def get_ctp_vectors(grid_x, grid_y, pixel_x, pixel_y):
-    top_left = (pixel_x - grid_x, pixel_y - grid_y)
-    top_right = (pixel_x - (grid_x + 1), pixel_y - grid_y)
-    bottom_left = (pixel_x - grid_x, pixel_y - (grid_y + 1))
-    bottom_right = (pixel_x - (grid_x + 1), pixel_y - (grid_y + 1))
-
-    return top_left, top_right, bottom_left, bottom_right
-
-# compute the dot products between unit vectors and corner 
-# to point-vectors by cell (4 dot products per func call)
-def compute_dot_products(cell_x, cell_y, ctp_vectors):
-    assert len(ctp_vectors) == 4
-
-    ctp_top_l, ctp_top_r, ctp_bot_l, ctp_bot_r = ctp_vectors
-
-    unit_top_l = get_unit_vector(cell_x, cell_y)
-    unit_top_r = get_unit_vector(cell_x + 1, cell_y)
-    unit_bot_l = get_unit_vector(cell_x, cell_y + 1)
-    unit_bot_r = get_unit_vector(cell_x + 1, cell_y + 1)
-
-    return (
-        ctp_top_l[0] * unit_top_l[0] + ctp_top_l[1] * unit_top_l[1],
-        ctp_top_r[0] * unit_top_r[0] + ctp_top_r[1] * unit_top_r[1],
-        ctp_bot_l[0] * unit_bot_l[0] + ctp_bot_l[1] * unit_bot_l[1],
-        ctp_bot_r[0] * unit_bot_r[0] + ctp_bot_r[1] * unit_bot_r[1]
-    )
-
-# do bilinear interpolation on dot products
-def interpolate(dot_products, pixel_x, pixel_y, cell_x, cell_y):
-    dx = pixel_x - cell_x
-    dy = pixel_y - cell_y
-    
-    dx3 = dx * dx * dx
-    dy3 = dy * dy * dy
-    
-    x = dx3 * (6*dx*dx - 15*dx + 10)
-    y = dy3 * (6*dy*dy - 15*dy + 10)
-    
-    return (dot_products[0] + x * (dot_products[1] - dot_products[0])) * (1 - y) + \
-           (dot_products[2] + x * (dot_products[3] - dot_products[2])) * y
-
-# calculate perlin noise value at (x, y)
 def perlin(x, y):
-
-    cell_x = int(np.floor(x))
-    cell_y = int(np.floor(y))
+    x = np.asarray(x)
+    y = np.asarray(y)
+    original_shape = x.shape
     
-    ctp_vectors = get_ctp_vectors(cell_x, cell_y, x, y)
-    dot_products = compute_dot_products(cell_x, cell_y, ctp_vectors)
+    x_flat = x.flatten()
+    y_flat = y.flatten()
+    
+    cell_x = np.floor(x_flat).astype(int)
+    cell_y = np.floor(y_flat).astype(int)
+    
+    dx = x_flat - cell_x
+    dy = y_flat - cell_y
+    
+    g00 = fast_lookup.get_unit_vectors(cell_x,     cell_y)
+    g10 = fast_lookup.get_unit_vectors(cell_x + 1, cell_y)
+    g01 = fast_lookup.get_unit_vectors(cell_x,     cell_y + 1)
+    g11 = fast_lookup.get_unit_vectors(cell_x + 1, cell_y + 1)
+    
+    dp00 = g00[:, 0] * dx + g00[:, 1] * dy
+    dp10 = g10[:, 0] * (dx - 1) + g10[:, 1] * dy
+    dp01 = g01[:, 0] * dx + g01[:, 1] * (dy - 1)
+    dp11 = g11[:, 0] * (dx - 1) + g11[:, 1] * (dy - 1)
+    
+    sx = dx * dx * dx * (dx * (dx * 6 - 15) + 10)
+    sy = dy * dy * dy * (dy * (dy * 6 - 15) + 10)
+    
+    x00 = dp00 + sx * (dp10 - dp00)
+    x10 = dp01 + sx * (dp11 - dp01)
+    
+    result = x00 + sy * (x10 - x00)
 
-    noise_value = interpolate(dot_products, x, y, cell_x, cell_y)
+    return result.reshape(original_shape)
 
-    return noise_value
 
 # add octaves
 def octave_perlin(x, y, octaves, persistence):
-    total = 0.0
+    x = np.asarray(x)
+    y = np.asarray(y)
+
+    total = np.zeros_like(x, dtype=float)
+    #total = 0.0
     frequency = 1.0
     amplitude = 1.0
     max_value = 0.0
@@ -101,32 +90,31 @@ def octave_perlin(x, y, octaves, persistence):
         total += perlin(x * frequency, y * frequency) * amplitude
 
         max_value += amplitude
-
         amplitude *= persistence
+        # times lacunarity value
         frequency *= 2
 
     normalized = total / max_value
-    
-    result = (normalized + 1.0) / 2.0
-    return max(0.0, min(1.0, result))
+    return np.clip((normalized + 1.0) / 2.0, 0.0, 1.0)
 
 
 def plot_noise():
-    noise = np.zeros((RESOLUTION, RESOLUTION))
+    x = np.linspace(0, SIZE, RESOLUTION)
+    y = np.linspace(0, SIZE, RESOLUTION)
+    x_coords, y_coords = np.meshgrid(x, y)
 
-    for j in range(RESOLUTION):
-        for i in range(RESOLUTION):
-            x = i / RESOLUTION * SIZE
-            y = j / RESOLUTION * SIZE
-            noise_value = octave_perlin(x, y, 6, 0.5)
-            noise[j][i] = noise_value
-
-    # normalize noise values for plot
-    noise = (noise - np.min(noise)) / (np.max(noise) - np.min(noise))
-
+    noise = octave_perlin(x_coords, y_coords, octaves=4, persistence=0.5)
+    
+    # Normalize for display
+    noise_min, noise_max = noise.min(), noise.max()
+    if noise_max > noise_min:
+        noise = (noise - noise_min) / (noise_max - noise_min)
+    
+    # Create the plot
     plt.figure(figsize=(10, 8))
-    plt.imshow(noise, cmap="grey", aspect="auto")
+    plt.imshow(noise, cmap="gray", extent=[0, SIZE, 0, SIZE], origin='lower')
     plt.colorbar()
+    plt.title('2D Perlin Noise')
     plt.show()
     
 

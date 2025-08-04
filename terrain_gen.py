@@ -76,6 +76,9 @@ def draw_loading_screen(progress, stage_text):
 
 # we do things in numpy and batches now for performance
 def get_noise_values(width, height, tile_size, progress_callback):
+    # hirvee bottleneck lmao tän takia tää kesti nii
+    # pirun kauan tää prosessi, loopattiin ihan birusti
+    '''
     x_coords = np.arange(0, width, tile_size)
     y_coords = np.arange(0, height, tile_size)
     
@@ -104,7 +107,16 @@ def get_noise_values(width, height, tile_size, progress_callback):
             progress_callback(progress, "Generating noise values...")
     
     progress_callback(0.6, "Normalizing noise values...")
+    '''
+
+    x_coords = np.arange(0, width, tile_size)
+    y_coords = np.arange(0, height, tile_size)
+    X, Y = np.meshgrid(x_coords, y_coords)
+    x_flat = X.flatten() * SCALE
+    y_flat = Y.flatten() * SCALE
     
+    raw_noise_values = octave_perlin(x_flat, y_flat, octaves=4, persistence=0.5)
+
     raw_noise_array = np.array(raw_noise_values)
     min_observed = np.min(raw_noise_array)
     max_observed = np.max(raw_noise_array)
@@ -166,7 +178,7 @@ def main():
     terrain_surface = None
 
     start_time = pygame.time.get_ticks()
-    
+
     def update_progress(progress, stage_text):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -176,7 +188,7 @@ def main():
         if run:
             draw_loading_screen(progress, stage_text)
             clock.tick(FPS)
-    
+            
     while run:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -191,11 +203,11 @@ def main():
                 
                 if run:  # check if we haven't quit during terrain generation
                     update_progress(1.0, "Complete!")
+                    
+                    pygame.time.wait(500)
 
                     generation_time = pygame.time.get_ticks() - start_time
                     print(f"Terrain map generation took: {generation_time}ms")
-                    
-                    pygame.time.wait(500)
                     
                     screen.blit(terrain_surface, (0, 0))
                     pygame.display.flip()
@@ -207,7 +219,8 @@ def main():
 
 
 if __name__ == "__main__":
-    cProfile.run('main()')
+    #cProfile.run('main()')
+    main()
 
 # TILE_SIZE = 10:
 # (optimizations in this file)
