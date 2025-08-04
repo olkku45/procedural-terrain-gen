@@ -4,7 +4,7 @@ import numpy as np
 import cProfile
 
 WIDTH, HEIGHT = 1280, 720
-TILE_SIZE = 10
+TILE_SIZE = 2
 SCALE = 0.01
 FPS = 30
 

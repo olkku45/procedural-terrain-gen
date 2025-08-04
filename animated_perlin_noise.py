@@ -1,4 +1,3 @@
-import math
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -141,12 +140,14 @@ x_coords, y_coords = np.meshgrid(x, y)
 
 fig, ax = plt.subplots(figsize=(8, 6))
 # look up matplotlib cmaps for different color maps
-im = ax.imshow(np.zeros((RESOLUTION, RESOLUTION)), cmap="hsv", vmin=0, vmax=1)
+im = ax.imshow(np.zeros((RESOLUTION, RESOLUTION)), cmap="grey", vmin=0, vmax=1)
 plt.colorbar(im, ax=ax)
+plt.title("Animated Perlin Noise")
 
 
 def plot_noise():
     anim = FuncAnimation(fig, update, frames=100, interval=TIME_BETWEEN_FRAMES, blit=True)
+    #anim.save("perlin_noise_5.gif", writer="pillow", fps=30)
     plt.show()
     
 
