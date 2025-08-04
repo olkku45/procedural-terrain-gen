@@ -20,6 +20,7 @@ class FastVectorLookup:
         self.vectors = self._generate_unit_vectors(table_size)
     
     def _generate_unit_vectors(self, n):
+        # Generate 3D unit vectors
         vectors = np.zeros((n, 3))
         z = 2.0 * np.random.rand(n) - 1.0
         theta = 2 * np.pi * np.random.rand(n)
@@ -42,7 +43,7 @@ class FastVectorLookup:
 
 fast_lookup = FastVectorLookup()
 
-# calculate perlin noise values, all operations in this function
+# Calculate perlin noise values, all operations in this function
 # except gradient vector calculations
 def perlin(x, y, z):
     x = np.asarray(x)
@@ -96,7 +97,7 @@ def perlin(x, y, z):
     
     return result.reshape(original_shape)
 
-# add octaves
+# Add octaves (layers)
 def octave_perlin(x, y, t, octaves, persistence):
     x = np.asarray(x)
     y = np.asarray(y)
@@ -112,7 +113,7 @@ def octave_perlin(x, y, t, octaves, persistence):
 
         max_value += amplitude
         amplitude *= persistence
-        # times lacunarity value
+        # times lacunarity value (similarity)
         frequency *= 2
 
     normalized = total / max_value
@@ -147,6 +148,7 @@ plt.title("Animated Perlin Noise")
 
 def plot_noise():
     anim = FuncAnimation(fig, update, frames=100, interval=TIME_BETWEEN_FRAMES, blit=True)
+    # save to gif below, optionally
     #anim.save("perlin_noise_5.gif", writer="pillow", fps=30)
     plt.show()
     

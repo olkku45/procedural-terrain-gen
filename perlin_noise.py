@@ -2,10 +2,10 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
-# totally random value (for plotting)
+# Random value (for plotting)
 SIZE = 10
 
-# plot area size
+# Plot area size
 RESOLUTION = 100
 
 
@@ -23,7 +23,7 @@ class FastVectorLookup:
         return vectors
     
     def get_unit_vectors(self, x, y):
-        # Vectorized hash function for 2D
+        # Gectorized hash function for 2D
         h = (x * 73856093) ^ (y * 19349663)
         h = ((h >> 16) ^ h) * 0x45d9f3b
         h = ((h >> 16) ^ h) * 0x45d9f3b
@@ -75,13 +75,12 @@ def perlin(x, y):
     return result.reshape(original_shape)
 
 
-# add octaves
+# Add octaves to noise (layers)
 def octave_perlin(x, y, octaves, persistence):
     x = np.asarray(x)
     y = np.asarray(y)
 
     total = np.zeros_like(x, dtype=float)
-    #total = 0.0
     frequency = 1.0
     amplitude = 1.0
     max_value = 0.0
@@ -91,7 +90,7 @@ def octave_perlin(x, y, octaves, persistence):
 
         max_value += amplitude
         amplitude *= persistence
-        # times lacunarity value
+        # Times lacunarity value (similarity)
         frequency *= 2
 
     normalized = total / max_value
@@ -105,12 +104,10 @@ def plot_noise():
 
     noise = octave_perlin(x_coords, y_coords, octaves=4, persistence=0.5)
     
-    # Normalize for display
     noise_min, noise_max = noise.min(), noise.max()
     if noise_max > noise_min:
         noise = (noise - noise_min) / (noise_max - noise_min)
     
-    # Create the plot
     plt.figure(figsize=(10, 8))
     plt.imshow(noise, cmap="gray", extent=[0, SIZE, 0, SIZE], origin='lower')
     plt.colorbar()

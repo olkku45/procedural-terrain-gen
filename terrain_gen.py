@@ -118,12 +118,11 @@ def main():
 
 
 if __name__ == "__main__":
+    # optionally see how long each part takes to run,
+    # but at this point kind of redundant
     #cProfile.run('main()')
     main()
 
 # TILE_SIZE = 10:
-# (optimizations in this file and perlin_noise)
 # without optimizations: 20s
-# with optimizations, without progress bar: 3s
-# with optimizations, with progress bar: 5-7s
-# actually optimized: 10-30 ms lolll
+# optimized: 10-30 ms
