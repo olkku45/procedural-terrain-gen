@@ -9,7 +9,7 @@ WIDTH, HEIGHT = 1280, 720
 # the loading screen :) at
 # least for me, it will differ
 # greatly based on your hardware
-TILE_SIZE = 5
+TILE_SIZE = 10
 SCALE = 0.01
 FPS = 30
 

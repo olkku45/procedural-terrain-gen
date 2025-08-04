@@ -12,23 +12,19 @@ RESOLUTION = 100
 
 class FastVectorLookup:
     def __init__(self, table_size=65536):
-        """Pre-compute sin/cos lookup table"""
         self.table_size = table_size
         self.angle_scale = table_size / (2 * math.pi)
         
-        # Pre-compute lookup tables
         angles = np.linspace(0, 2*math.pi, table_size, endpoint=False)
         self.cos_table = np.cos(angles)
         self.sin_table = np.sin(angles)
     
     def get_unit_vector(self, x, y):
-        # Fast hash
         h = (x * 73856093) ^ (y * 19349663)
         h = ((h >> 16) ^ h) * 0x45d9f3b
         h = ((h >> 16) ^ h) * 0x45d9f3b
         h = (h >> 16) ^ h
         
-        # Use hash as index into lookup table
         index = h % self.table_size
         return (self.cos_table[index], self.sin_table[index])
 
@@ -39,77 +35,56 @@ fast_lookup = FastVectorLookup()
 def get_unit_vector(x, y):
     return fast_lookup.get_unit_vector(x, y)
 
-# locate the four points of each grid cell
-def locate_corners(x, y):
-    points = []
 
-    top_left = (x, y)
-    top_right = (x + 1, y)
-    bottom_left = (x, y + 1)
-    bottom_right = (x + 1, y + 1)
+def get_ctp_vectors(grid_x, grid_y, pixel_x, pixel_y):
+    top_left = (pixel_x - grid_x, pixel_y - grid_y)
+    top_right = (pixel_x - (grid_x + 1), pixel_y - grid_y)
+    bottom_left = (pixel_x - grid_x, pixel_y - (grid_y + 1))
+    bottom_right = (pixel_x - (grid_x + 1), pixel_y - (grid_y + 1))
 
-    points.append(top_left)
-    points.append(top_right)
-    points.append(bottom_left)
-    points.append(bottom_right)
-
-    return points
-
-
-def vectors_from_corners_to_point(corners, pixel_x, pixel_y):
-    vectors = []
-
-    for corner in corners:
-        vector = (pixel_x - corner[0], pixel_y - corner[1])
-        vectors.append(vector)
-
-    return vectors
+    return top_left, top_right, bottom_left, bottom_right
 
 # compute the dot products between unit vectors and corner 
 # to point-vectors by cell (4 dot products per func call)
-def compute_dot_products(unit_vectors, ctp_vectors):
-    assert len(unit_vectors) == 4
+def compute_dot_products(cell_x, cell_y, ctp_vectors):
     assert len(ctp_vectors) == 4
 
-    dot_products = []
-    for unit_vector, ctp_vector in zip(unit_vectors, ctp_vectors):
-        dot = unit_vector[0] * ctp_vector[0] + unit_vector[1] * ctp_vector[1]
-        dot_products.append(dot)
+    ctp_top_l, ctp_top_r, ctp_bot_l, ctp_bot_r = ctp_vectors
 
-    return dot_products
+    unit_top_l = get_unit_vector(cell_x, cell_y)
+    unit_top_r = get_unit_vector(cell_x + 1, cell_y)
+    unit_bot_l = get_unit_vector(cell_x, cell_y + 1)
+    unit_bot_r = get_unit_vector(cell_x + 1, cell_y + 1)
+
+    return (
+        ctp_top_l[0] * unit_top_l[0] + ctp_top_l[1] * unit_top_l[1],
+        ctp_top_r[0] * unit_top_r[0] + ctp_top_r[1] * unit_top_r[1],
+        ctp_bot_l[0] * unit_bot_l[0] + ctp_bot_l[1] * unit_bot_l[1],
+        ctp_bot_r[0] * unit_bot_r[0] + ctp_bot_r[1] * unit_bot_r[1]
+    )
 
 # do bilinear interpolation on dot products
 def interpolate(dot_products, pixel_x, pixel_y, cell_x, cell_y):
-    assert len(dot_products) == 4
-
-    x = easing_func(pixel_x - cell_x)
-    y = easing_func(pixel_y - cell_y)
-
-    # these variables don't have any proper names
-    m1 = dot_products[0] + x * (dot_products[1] - dot_products[0])
-    m2 = dot_products[2] + x * (dot_products[3] - dot_products[2])
-    m3 = m1 + y * (m2 - m1)
-
-    return m3
-
-
-def easing_func(x):
-    return 6*x**5 - 15*x**4 + 10*x**3
+    dx = pixel_x - cell_x
+    dy = pixel_y - cell_y
+    
+    dx3 = dx * dx * dx
+    dy3 = dy * dy * dy
+    
+    x = dx3 * (6*dx*dx - 15*dx + 10)
+    y = dy3 * (6*dy*dy - 15*dy + 10)
+    
+    return (dot_products[0] + x * (dot_products[1] - dot_products[0])) * (1 - y) + \
+           (dot_products[2] + x * (dot_products[3] - dot_products[2])) * y
 
 # calculate perlin noise value at (x, y)
 def perlin(x, y):
 
     cell_x = int(np.floor(x))
     cell_y = int(np.floor(y))
-
-    corners = locate_corners(cell_x, cell_y)
-
-    chosen_unit_vectors = []
-    for corner in corners:
-        chosen_unit_vectors.append(get_unit_vector(corner[0], corner[1]))
-
-    ctp_vectors = vectors_from_corners_to_point(corners, x, y)
-    dot_products = compute_dot_products(chosen_unit_vectors, ctp_vectors)
+    
+    ctp_vectors = get_ctp_vectors(cell_x, cell_y, x, y)
+    dot_products = compute_dot_products(cell_x, cell_y, ctp_vectors)
 
     noise_value = interpolate(dot_products, x, y, cell_x, cell_y)
 
