@@ -75,9 +75,7 @@ def draw_loading_screen(progress, stage_text):
 
 
 # we do things in numpy and batches now for performance
-def get_noise_values(width, height, tile_size, progress_callback):
-    # hirvee bottleneck lmao tän takia tää kesti nii
-    # pirun kauan tää prosessi, loopattiin ihan birusti
+def get_noise_values(width, height, tile_size, progress_callback=None):
     '''
     x_coords = np.arange(0, width, tile_size)
     y_coords = np.arange(0, height, tile_size)
@@ -135,7 +133,8 @@ def get_noise_values(width, height, tile_size, progress_callback):
 
 # generate a blank terrain surface onto which 
 # the terrain map is rendered
-def generate_terrain_surface(width, height, tile_size, noise_grid, progress_callback):
+
+def generate_terrain_surface(width, height, tile_size, noise_grid, progress_callback=None):
     terrain_surface = pygame.Surface((width, height))
 
     total_tiles = len(noise_grid)
@@ -160,13 +159,16 @@ def generate_terrain_surface(width, height, tile_size, noise_grid, progress_call
             
             terrain_surface.blit(color_surfaces[terrain_type], (x, y))
 
+            '''
             tiles_processed += 1
             progress = 0.6 + (tiles_processed / total_tiles * 0.4)
             
             if tiles_processed % min_update_interval == 0 or tiles_processed == total_tiles:
                 progress_callback(progress, "Rendering terrain...")
-    
+            '''
+                
     return terrain_surface
+
 
 # run program
 # optionally measure how long map gen took 
@@ -178,6 +180,9 @@ def main():
     terrain_surface = None
 
     start_time = pygame.time.get_ticks()
+
+    noise_values = get_noise_values(WIDTH, HEIGHT, TILE_SIZE)
+    terrain_surface = generate_terrain_surface(WIDTH, HEIGHT, TILE_SIZE, noise_values)
 
     def update_progress(progress, stage_text):
         for event in pygame.event.get():
@@ -194,6 +199,7 @@ def main():
             if event.type == pygame.QUIT:
                 run = False
 
+        '''
         if not drawn and run:
             # generate terrain with progress updates
             noise_values = get_noise_values(WIDTH, HEIGHT, TILE_SIZE, update_progress)
@@ -212,6 +218,14 @@ def main():
                     screen.blit(terrain_surface, (0, 0))
                     pygame.display.flip()
                     drawn = True
+        '''
+        if not drawn:
+            generation_time = pygame.time.get_ticks() - start_time
+            print(f"Terrain map generation took: {generation_time}ms")
+
+            screen.blit(terrain_surface, (0, 0))
+            pygame.display.flip()
+            drawn = True
         
         clock.tick(FPS)
 
