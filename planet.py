@@ -2,7 +2,8 @@
 # https://www.delftstack.com/howto/python-pygame/3d-in-pygame/
 # https://sinestesia.co/blog/tutorials/python-icospheres/
 # claude.ai
-# yes this is partly vibe-coded
+# yes this is partly vibe-coded because I could likely not
+# figure all this OpenGL stuff out on my own
 
 # PILLOW REQUIRED
 
