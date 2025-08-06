@@ -208,20 +208,16 @@ def main():
     texture_id = load_image_texture(TEXTURE)
 
     mouse_was_pressed = False
+
+    sphere_rot_x = 0
+    sphere_rot_y = 0
     
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 return
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        
-        glEnable(GL_TEXTURE_2D)
-        glBindTexture(GL_TEXTURE_2D, texture_id)
-        draw_textured_sphere()
-        glDisable(GL_TEXTURE_2D)
-
+            
         mouse_mvmt = (0, 0)
         mouse_input = pygame.mouse.get_pressed()
 
@@ -233,8 +229,11 @@ def main():
                 last_pos = pygame.mouse.get_pos()
                 mouse_was_pressed = True
 
-
             mouse_mvmt = pygame.mouse.get_rel()
+            
+            # update rotation angles based on mouse movement
+            sphere_rot_x += mouse_mvmt[1] * 0.1
+            sphere_rot_y += mouse_mvmt[0] * 0.1
 
         else:
             '''
@@ -257,8 +256,21 @@ def main():
 
             pygame.mouse.set_visible(True)
             pygame.event.set_grab(False)
-
-        glRotatef(mouse_mvmt[0]*0.1, 0.0, 1.0, 0.0)
+        
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        
+        glPushMatrix()
+        
+        glRotatef(sphere_rot_x, 1, 0, 0)
+        glRotatef(sphere_rot_y, 0, 1, 0)
+        
+        glEnable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, texture_id)
+        
+        draw_textured_sphere()
+        
+        glDisable(GL_TEXTURE_2D)
+        glPopMatrix()
         
         pygame.display.flip()
         pygame.time.wait(10)
